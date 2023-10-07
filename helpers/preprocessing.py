@@ -41,28 +41,38 @@ class Preprocessing:
         return resized_image
 
     def extract_hair(self, img):
+
+        # Convert RGB to grayscale
         img_grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        clip_limit = 1.0 
-        tile_size = 10
+        clip_limit = 1.0 # 10.0
+        tile_size = 10 # 6
         CLAHE = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(tile_size,tile_size))
         img_CLAHE = CLAHE.apply(img_grayscale)
 
-        kernel_size = 5
-        averaged_image = cv2.blur(img_grayscale, (kernel_size, kernel_size))
+        # Apply Gaussian filter
+        filter_size = 5
+        filtered_image = cv2.GaussianBlur(img_CLAHE, (filter_size, filter_size), 0)
 
-        hair_mask = img_CLAHE - averaged_image
+        # Canny edge detection
+        # Calculate the median pixel value of the image
+        median_value = np.median(filtered_image)
+        # Define high and low thresholds for Canny
+        high_threshold = median_value + 75
+        low_threshold = median_value - 75
+        # Apply Canny edge detection with the selected thresholds
+        edges = cv2.Canny(filtered_image, low_threshold, high_threshold)
 
-        _ , thr_img = cv2.threshold(hair_mask, 0 ,255, cv2.THRESH_OTSU)
+        # Dilation
+        # Define the size of the dilation kernel (structuring element)
+        kernel_size = (9, 9)  # Adjust the size as needed
+        # Perform dilation
+        dilated_image = cv2.dilate(edges, kernel=cv2.getStructuringElement(cv2.MORPH_ELLIPSE, kernel_size))
 
-        p = 3
-        structElemOpening = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (p, p))
-        img_opening = cv2.morphologyEx(thr_img, cv2.MORPH_OPEN, structElemOpening)
-        
-        inpainted_img = cv2.inpaint(img, img_opening, inpaintRadius=10, flags=cv2.INPAINT_NS)
+        inpainted_img = cv2.inpaint(img, dilated_image, inpaintRadius=5, flags=cv2.INPAINT_TELEA) # INPAINT_NS
 
-        return inpainted_img
-    
+        return inpainted_img  
+      
     def crop_frame(self, image, threshold = 0.2, debug=False):
         # Convert the image to grayscale
         gray = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
