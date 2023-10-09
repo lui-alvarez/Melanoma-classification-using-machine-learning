@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 output/features/*.csv
+output/*.pkl
 
 # C extensions
 *.so
