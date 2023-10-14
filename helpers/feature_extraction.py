@@ -4,8 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import mode, skew, kurtosis, entropy
 
-from skimage.feature import graycomatrix, graycoprops
-from skimage.feature import local_binary_pattern
+from skimage.feature import graycomatrix, graycoprops, local_binary_pattern, hog
 
 class FeatureExtraction:
     def __init__(self) -> None:
@@ -113,11 +112,37 @@ class FeatureExtraction:
             histogram = np.concatenate((histogram, hist))
         
         return histogram
+
+    def extract_hog_features(self, image):
+        """
+        Extract HOG features from an input image.
+
+        Parameters:
+        - image: Input image (grayscale).
+
+        Returns:
+        - hog_features: The extracted HOG features.
+        """
+        # Convert image to grayscale
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+        # Define HOG parameters (you can customize these as needed)
+        pixels_per_cell = (8, 8)
+        cells_per_block = (2, 2)
+        orientations = 9
+
+        # Compute HOG features
+        hog_features = hog(gray_image, pixels_per_cell=pixels_per_cell,
+                           cells_per_block=cells_per_block,
+                           orientations=orientations)
+        
+        return hog_features
         
     def fit(self, image):
         color_features      = self.extract_color_features(image)
         texture_features    = self.extract_glcm_features(image)
         lbp_features        = self.extract_lbp_features(image)
+        # hog_features        = self.extract_hog_features(image)
 
         all_features = np.concatenate((color_features, texture_features, lbp_features))
 
