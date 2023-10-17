@@ -144,7 +144,7 @@ class FeatureExtraction:
         color_features      = self.extract_color_features(image)
         texture_features    = self.extract_glcm_features(image)
         lbp_features        = self.extract_lbp_features(image)
-        #hog_features        = self.extract_hog_features(image)
+        # hog_features        = self.extract_hog_features(image) # 1 file of 7k samples ended up 24GB size
 
         all_features = np.concatenate((color_features, texture_features, lbp_features))
 
