@@ -10,9 +10,10 @@ class FeatureExtraction:
     def __init__(self) -> None:
         pass
 
+    
     def calculate_hist_features(self, hist):
         feature_vector = []
-        feature_vector.append(np.mean(hist)) # Mean
+        # feature_vector.append(np.mean(hist)) # Mean
         # feature_vector.append(mode(hist)[0][0]) # Mode
         feature_vector.append(np.std(hist)) # Standard deviation
         feature_vector.append(skew(hist)[0]) # Skewness
@@ -54,7 +55,8 @@ class FeatureExtraction:
         )
 
         return color_features
-    
+
+
     def extract_glcm_features(self, image):    
         if not isinstance(image, np.ndarray):
             raise ValueError("Input must be a numpy array")
