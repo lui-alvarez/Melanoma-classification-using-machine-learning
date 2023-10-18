@@ -10,38 +10,75 @@ class FeatureExtraction:
     def __init__(self) -> None:
         pass
 
-    
+    def _plot_histogram(self, hist, title='Histogram'):
+        # Determine the number of bins based on the length of the histogram
+        num_bins = len(hist)
+
+        # Create an array of bin edges
+        bin_edges = np.arange(num_bins)
+
+        # Create a bar plot for the histogram
+        plt.bar(bin_edges, hist)
+
+        # Set labels and a title
+        plt.xlabel('Bin')
+        plt.ylabel('Frequency')
+        plt.title(title)
+
+        # Show the plot
+        plt.show()
+
+
+
     def calculate_hist_features(self, hist):
         feature_vector = []
-        # feature_vector.append(np.mean(hist)) # Mean
-        # feature_vector.append(mode(hist)[0][0]) # Mode
+        
+        feature_vector.append(np.dot([i for i in range(0,256)], hist)) # Mean
+        feature_vector.append(np.argmax(hist)) # Mode
         feature_vector.append(np.std(hist)) # Standard deviation
-        feature_vector.append(skew(hist)[0]) # Skewness
+        feature_vector.append(skew(hist)) # Skewness
         feature_vector.append(np.sum(hist**2)) # Energy
-        feature_vector.append(entropy(hist, base=2)[0]) # Entropy
-        feature_vector.append(kurtosis(hist)[0]) # Kurtosis
+        feature_vector.append(entropy(hist, base=2)) # Entropy
+        feature_vector.append(kurtosis(hist)) # Kurtosis
 
         return np.array(feature_vector)
     
+    def _compute_norm_hist(self, image, bins=256, range=(0, 256), gray=False, density=True):
+        if not gray:
+            hist_ch1, _ = np.histogram(image[:, :, 0], bins, range, density)
+            hist_ch2, _ = np.histogram(image[:, :, 1], bins, range, density)
+            hist_ch3, _ = np.histogram(image[:, :, 2], bins, range, density)
+
+            # self._plot_histogram(hist_ch1)
+            
+            # hist_ch1 = hist_ch1 / np.sum(hist_ch1)
+            # hist_ch2 = hist_ch2 / np.sum(hist_ch2)
+            # hist_ch3 = hist_ch3 / np.sum(hist_ch3)
+
+            # self._plot_histogram(hist_ch1)
+
+            return hist_ch1, hist_ch2, hist_ch3
+        else:
+            hist_gray, _ = np.histogram(image, bins, range, density)
+            # hist_gray = hist_gray / np.sum(hist_gray)
+
+            return hist_gray
+    
     def extract_color_features(self, img):
-        b, g, r = cv2.split(img) # Split the image into the B, G, R channels
-        n_bins = 256 # Number of bins
-        height, width, _ = img.shape
-        N = height * width # Number of pixels
+        # BGR
+        hist_b, hist_g, hist_r = self._compute_norm_hist(img)
 
-        # Calculate normalized histograms for each channel
-        hist_r = (cv2.calcHist([r], [0], None, [n_bins], [0, 256])) / N
-        hist_g = (cv2.calcHist([g], [0], None, [n_bins], [0, 256])) / N
-        hist_b = (cv2.calcHist([b], [0], None, [n_bins], [0, 256])) / N
-
+        # HSV
         hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        h, s, v = cv2.split(hsv_img)
+        hist_h, hist_s, hist_v = self._compute_norm_hist(hsv_img)
 
-        # Calculate normalized histograms for each channel
-        hist_h = (cv2.calcHist([h], [0], None, [n_bins], [0, 256])) / N
-        hist_s = (cv2.calcHist([s], [0], None, [n_bins], [0, 256])) / N
-        hist_v = (cv2.calcHist([v], [0], None, [n_bins], [0, 256])) / N
+        # LAB
+        lab_img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        hist_L, hist_A, hist_B = self._compute_norm_hist(lab_img)
 
+        # Gray
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        hist_gray = self._compute_norm_hist(gray_img, gray=True)
 
         color_features = np.concatenate((
             self.calculate_hist_features(hist_r), 
@@ -50,13 +87,18 @@ class FeatureExtraction:
             
             self.calculate_hist_features(hist_h), 
             self.calculate_hist_features(hist_s), 
-            self.calculate_hist_features(hist_v)
+            self.calculate_hist_features(hist_v),
+
+            self.calculate_hist_features(hist_L),
+            self.calculate_hist_features(hist_A),
+            self.calculate_hist_features(hist_B),
+
+            self.calculate_hist_features(hist_gray),
             )
         )
 
         return color_features
-
-
+    
     def extract_glcm_features(self, image):    
         if not isinstance(image, np.ndarray):
             raise ValueError("Input must be a numpy array")
@@ -139,9 +181,34 @@ class FeatureExtraction:
                            orientations=orientations)
         
         return hog_features
+    
+    def region_based_hist_fe(self, callback_func, image):
+        # We split the image into 3 parts, each is 1/3 of the original height
+        height, _, _ = image.shape
+        partial_height = height // 3
+
+        # Sotring the images into a list to iterate through them and get the feature vector for each part separately
+        images_list = [
+            image[0:partial_height, :],
+            image[partial_height:2*partial_height, :],
+            image[2*partial_height:, :],
+        ]
+
+        feature_vector = []
+
+        for img in images_list:
+            partial_feature_vector = callback_func(img)
+            feature_vector = np.concatenate((feature_vector, partial_feature_vector))
+
+        return feature_vector
+
         
     def fit(self, image):
-        color_features      = self.extract_color_features(image)
+        # color_features      = self.extract_color_features(image)
+        color_features      = self.region_based_hist_fe(
+            callback_func=self.extract_color_features,
+            image=image
+        )
         texture_features    = self.extract_glcm_features(image)
         lbp_features        = self.extract_lbp_features(image)
         # hog_features        = self.extract_hog_features(image) # 1 file of 7k samples ended up 24GB size
@@ -149,8 +216,6 @@ class FeatureExtraction:
         all_features = np.concatenate((color_features, texture_features, lbp_features))
 
         return all_features
-
-
 
 
 
