@@ -73,7 +73,7 @@ class Preprocessing:
 
         return inpainted_img  
       
-    def crop_frame(self, image, threshold = 0.2, debug=False):
+    def crop_frame(self, image, threshold = 0.2, debug=False, margin=0.31):
         # Convert the image to grayscale
         gray = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
             
@@ -126,8 +126,10 @@ class Preprocessing:
             mean_outside = (mean_above + mean_below + mean_left + mean_right) / 4
 
             if mean_outside / mean_inside < threshold:
-                # print("Required cropping")
-                ret = cropped_image
+                # Define the cropping box with the required margin (TO EXCLUDE THE MARGIN FROM AFFECTING THIS VALIDATION)
+                ret =  image.copy()[
+                    int(center[1] - radius + margin * radius):int(center[1] + radius - margin * radius), 
+                    int(center[0] - radius + margin * radius):int(center[0] + radius - margin * radius)]
                 CROP_FLAG = True
             else: 
                 # print("Doesn't required cropping")
