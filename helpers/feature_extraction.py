@@ -28,8 +28,6 @@ class FeatureExtraction:
         # Show the plot
         plt.show()
 
-
-
     def calculate_hist_features(self, hist):
         feature_vector = []
         
@@ -202,7 +200,6 @@ class FeatureExtraction:
 
         return feature_vector
 
-        
     def fit(self, image):
         # color_features      = self.extract_color_features(image)
         color_features      = self.region_based_hist_fe(
