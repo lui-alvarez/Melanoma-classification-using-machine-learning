@@ -4,21 +4,36 @@ from sklearn.model_selection import GridSearchCV
 
 import pandas as pd
 import numpy as np
+import cmath
 
 class FeatureSelection:
     def __init__(self) -> None:
-        pass
+        print(f"Init class FS {self.__dict__}")
 
-    def max_entropy_feature_selection(self, data, target, param_grid = {'k': [100, 120, 140]}):
-        # Create a SelectKBest instance with mutual information as the scoring function
-        selector = SelectKBest() # score_func=mutual_info_classif
+    def calc_n_features(self, n_samples):
+        '''
+            Thumb rule = N >= D(D-1)/2
+        '''
+        a = 1
+        b = -1
+        c = -2 * n_samples
 
-        # Perform grid search to find the best k
-        grid_search = GridSearchCV(selector, param_grid, cv=5, scoring='accuracy', verbose=2)
-        grid_search.fit(data, target)
+        # calculate the discriminant
+        d = (b**2) - (4*a*c)
+
+        # find two solutions
+        sol1 = (-b-cmath.sqrt(d))/(2*a)
+        sol2 = (-b+cmath.sqrt(d))/(2*a)
+
+        n_features = int(np.max([np.round(np.abs(sol1)), np.round(np.abs(sol2))]))
+
+        return n_features
+
+
+    def select_bestk_features(self, data, target):
 
         # Get the best value of k from grid search
-        best_k = grid_search.best_params_['k']
+        best_k = self.calc_n_features(data.shape[0])
 
         # Apply Maximum Entropy-based feature selection with the best k
         selector = SelectKBest(k=best_k) # score_func=mutual_info_classif
