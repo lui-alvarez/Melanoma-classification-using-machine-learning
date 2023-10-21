@@ -1,6 +1,7 @@
 
-from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.feature_selection import SelectKBest, mutual_info_classif, RFE
 from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
 
 import pandas as pd
 import numpy as np
@@ -46,3 +47,18 @@ class FeatureSelection:
         selected_data = pd.DataFrame(X_new, columns=selected_features)
 
         return selected_data, selected_features
+    
+    def select_rfe_features(self, data, target):
+        estimator = SVC(kernel='linear', decision_function_shape='ovr',class_weight='balanced')
+
+        rfe = RFE(estimator, n_features_to_select=self.calc_n_features(data.shape[0]))
+        rfe.fit(data, target)
+        
+        # Get the indices of the selected features
+        selected_features = np.where(rfe.support_)[0]
+
+        # Convert the data to a DataFrame with the selected features
+        selected_data = pd.DataFrame(data, columns=selected_features)
+        
+        return selected_data, selected_features
+
