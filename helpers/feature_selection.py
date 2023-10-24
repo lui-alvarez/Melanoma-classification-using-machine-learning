@@ -60,5 +60,8 @@ class FeatureSelection:
         # Convert the data to a DataFrame with the selected features
         selected_data = pd.DataFrame(data, columns=selected_features)
         
+        # selected_features = rfe.support_
+        # selected_data = data[:, selected_features]
+
         return selected_data, selected_features
 
