@@ -51,7 +51,7 @@ class FeatureSelection:
     def select_rfe_features(self, data, target):
         estimator = SVC(kernel='linear', decision_function_shape='ovr',class_weight='balanced')
 
-        rfe = RFE(estimator, n_features_to_select=self.calc_n_features(data.shape[0]), verbose=2)
+        rfe = RFE(estimator, n_features_to_select=self.calc_n_features(data.shape[0]), verbose=0)
         rfe.fit(data, target)
         
         # Get the indices of the selected features
